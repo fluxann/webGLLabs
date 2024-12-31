@@ -1,0 +1,93 @@
+
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;    // Vertex position
+attribute vec3 normal;
+attribute vec3 tangent;
+attribute vec2 tex;
+
+uniform mat4 ModelViewProjectionMatrix;  // Combined model-view-projection matrix
+uniform mat4 ModelViewMatrix;            // Model-view matrix
+uniform mat3 NormalMatrix;               // Normal matrix for transforming normals
+
+varying vec3 vNormal;    // Interpolated normal passed to fragment shader
+varying vec3 vPosition;
+varying vec3 vTangent;
+varying vec2 vTexCor;  
+
+void main() {
+    vNormal = normalize(NormalMatrix * normal);
+    vTangent = normalize(NormalMatrix * tangent);
+    vTexCor = tex;
+
+    vec4 pos = ModelViewMatrix * vec4(vertex, 1.0);
+    vPosition = pos.xyz / pos.w;
+
+    gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
+}
+`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+precision highp float;
+
+uniform vec3 lightPosition;   // Position of the light source
+varying vec3 vTangent;    // Ambient light color
+varying vec3 vNormal;    // Diffuse light color
+varying vec2 vTexCor;   // Specular light color
+uniform vec3 viewerPosition;  // Viewer position in world space
+varying vec3 vPosition;       // Interpolated position
+
+uniform sampler2D diffuseTexture;
+uniform sampler2D normalTexture;
+uniform sampler2D specularTexture;
+
+vec3 getNorm()
+{
+    vec3 normal = vNormal;
+    vec3 tangent = vTangent;
+
+    //Normal orthogonalization
+    normal = normalize(normal - dot(tangent, normal) * tangent);
+
+    vec3 bitangent = cross(tangent, normal);
+    vec3 normalMap = texture2D(normalTexture, vTexCor).rgb;
+    normalMap = 2.0 * normalMap - vec3(1.0, 1.0, 1.0);
+    
+    //tangent priority 
+    mat3 TBN = mat3(tangent, bitangent, normal);
+    return normalize(TBN * normalMap);
+}
+
+void main() {
+    const float ambientFactor = 0.3;
+    float specularFactor = pow(texture2D(specularTexture, vTexCor).r, 0.5);
+    vec3 diffuseColor = texture2D(diffuseTexture, vTexCor).rgb;
+
+
+    vec3 normal = getNorm();
+    
+    // Compute light direction
+    vec3 lightDir = normalize(lightPosition - vPosition);
+
+    // Compute ambient component
+    vec3 ambient = diffuseColor * ambientFactor;
+
+    // Compute diffuse component
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diffuseColor * (1.0 - ambientFactor) * diff;
+
+    // Compute specular component
+    vec3 viewDir = normalize(viewerPosition - vPosition);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0); // Shininess factor
+    vec3 specular = vec3(specularFactor) * spec;
+
+    // Combine all components
+    vec3 finalColor = ambient + diffuse + specular;
+    
+    gl_FragColor = vec4(finalColor, 1.0);
+}
+`;
