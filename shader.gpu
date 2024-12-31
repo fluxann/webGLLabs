@@ -1,0 +1,62 @@
+
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;    // Vertex position
+attribute vec3 normal;    // Vertex normal
+
+uniform mat4 ModelViewProjectionMatrix;  // Combined model-view-projection matrix
+uniform mat4 ModelViewMatrix;            // Model-view matrix
+uniform mat3 NormalMatrix;               // Normal matrix for transforming normals
+
+varying vec3 vNormal;    // Interpolated normal passed to fragment shader
+varying vec3 vPosition;  // Interpolated position passed to fragment shader
+
+void main() {
+    vNormal = normalize(NormalMatrix * normal);
+
+    gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
+}
+`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+precision highp float;
+
+uniform vec3 lightPosition;   // Position of the light source
+uniform vec3 ambientColor;    // Ambient light color
+uniform vec3 diffuseColor;    // Diffuse light color
+uniform vec3 specularColor;   // Specular light color
+uniform vec3 viewerPosition;  // Viewer position in world space
+
+varying vec3 vNormal;         // Interpolated normal
+varying vec3 vPosition;       // Interpolated position
+
+void main() {
+    // Normalize the interpolated normal
+
+    vec3 normal = normalize(vNormal);
+    
+    // Compute light direction
+    vec3 lightDir = normalize(lightPosition - vPosition);
+
+    // Compute ambient component
+    vec3 ambient = ambientColor;
+
+    // Compute diffuse component
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diffuseColor * diff;
+
+    // Compute specular component
+    vec3 viewDir = normalize(viewerPosition - vPosition);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0); // Shininess factor
+    vec3 specular = specularColor * spec;
+
+    // Combine all components
+    vec3 finalColor = ambient + diffuse + specular;
+    
+    gl_FragColor = vec4(finalColor, 1.0);
+}
+`;

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>PA#2</title>
+    <style>
+        body {
+            background-color: #EEEEEE;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h2>Astroidal Torus Phong Lightning</h2>
+    <div >
+        <label for="uGranularity">U Granularity:</label>
+        <input type="range" id="uGranularity" min="2" max="100" value="72">
+    </div>
+    <div >
+        <label for="vGranularity">V Granularity:</label>
+        <input type="range" id="vGranularity" min="2" max="100" value="20">
+    </div>
+    <div id="canvas-holder" style="position: relative">
+        <canvas width="700" height="700" id="webglcanvas" style="background-color:red"></canvas>
+    </div>
+
+    <script defer type="module" src="./main.js"></script>
+    <script src="./Utils/m4.js"></script>
+    <script src="./shader.gpu"></script>
+    
+</body>
+
+</html>
